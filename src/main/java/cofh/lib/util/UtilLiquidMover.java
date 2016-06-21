@@ -9,7 +9,6 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidContainerRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidTankInfo;
@@ -138,14 +137,15 @@ public class UtilLiquidMover {
 						filledBucket = null;
 					}
 				}
-				if (filledBucket != null
-						&& ItemHelper.disposePlayerItem(ci, filledBucket, player, true)) {
-					if (!player.worldObj.isRemote) {
-						player.openContainer.detectAndSendChanges();
-						((EntityPlayerMP) player).sendContainerAndContentsToPlayer(player.openContainer, player.openContainer.getInventory());
+				if (filledBucket != null) {
+					if (ItemHelper.disposePlayerItem(ci, filledBucket, player, true)) {
+						if (!player.worldObj.isRemote) {
+							player.openContainer.detectAndSendChanges();
+							((EntityPlayerMP) player).sendContainerAndContentsToPlayer(player.openContainer, player.openContainer.getInventory());
+						}
+						itcb.drain(ForgeDirection.UNKNOWN, bucketLiquid, true);
+						return true;
 					}
-					itcb.drain(ForgeDirection.UNKNOWN, bucketLiquid, true);
-					return true;
 				}
 			}
 		}

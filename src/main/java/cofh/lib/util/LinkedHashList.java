@@ -18,11 +18,11 @@ public class LinkedHashList<E extends Object> extends AbstractCollection<E> impl
 
 	protected static final class Entry {
 
-		Entry next;
-		Entry prev;
-		final Object key;
-		final int hash;
-		Entry nextInBucket;
+		protected Entry next;
+		protected Entry prev;
+		protected final Object key;
+		protected final int hash;
+		protected Entry nextInBucket;
 
 		protected Entry(Object key, int keyHash) {
 

@@ -1,10 +1,9 @@
 package cofh.lib.util.helpers;
 
 import cofh.lib.audio.SoundBase;
-import cpw.mods.fml.client.FMLClientHandler;
-
 import net.minecraft.client.audio.ISound;
 import net.minecraft.client.audio.SoundHandler;
+import net.minecraftforge.fml.client.FMLClientHandler;
 
 /**
  * Contains various helper functions to assist with Sound manipulation.
@@ -15,10 +14,6 @@ import net.minecraft.client.audio.SoundHandler;
 public class SoundHelper {
 
 	public static final SoundHandler soundManager = FMLClientHandler.instance().getClient().getSoundHandler();
-	
-	private SoundHelper() {
-		
-	}
 
 	/**
 	 * This allows you to have some tricky functionality with Tile Entities. Just be sure you aren't dumb.

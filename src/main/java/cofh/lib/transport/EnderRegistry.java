@@ -6,7 +6,6 @@ import cofh.api.transport.IEnderEnergyHandler;
 import cofh.api.transport.IEnderFluidHandler;
 import cofh.api.transport.IEnderItemHandler;
 import cofh.lib.util.ArrayHashList;
-
 import gnu.trove.map.hash.TIntObjectHashMap;
 
 import java.util.BitSet;
@@ -14,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.config.ConfigCategory;
@@ -366,11 +366,12 @@ public final class EnderRegistry {
 		if (dest == null) {
 			return;
 		}
-		if (dest.dimension == theAttuned.dimension()
-				&& dest.x == theAttuned.x() && dest.y == theAttuned.y() && dest.z == theAttuned.z()) {
-			map.remove(freq);
-			usedTeleports.get(channel).set(freq, false);
-			linkConf.getCategory(channel).remove(String.valueOf(freq));
+		if (dest.dimension == theAttuned.dimension()) {
+			if (dest.x == theAttuned.x() && dest.y == theAttuned.y() && dest.z == theAttuned.z()) {
+				map.remove(freq);
+				usedTeleports.get(channel).set(freq, false);
+				linkConf.getCategory(channel).remove(String.valueOf(freq));
+			}
 		}
 	}
 
@@ -449,8 +450,9 @@ public final class EnderRegistry {
 				} else {
 					return null;
 				}
-				if (world.blockExists(x, y, z)) {
-					TileEntity te = world.getTileEntity(x, y, z);
+				BlockPos bp = new BlockPos(x, y, z);
+				if (world.getBlockState(bp) != null) {
+					TileEntity te = world.getTileEntity(bp);
 					if (te instanceof IEnderDestination) {
 						output = (IEnderDestination) te;
 					} else {

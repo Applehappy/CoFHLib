@@ -1,16 +1,17 @@
 package cofh.lib.render.particle;
 
 import cofh.lib.util.helpers.MathHelper;
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
-
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.material.Material;
-import net.minecraft.client.particle.EntityFX;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.particle.Particle;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 @SideOnly(Side.CLIENT)
-public class EntityDropParticleFX extends EntityFX {
+public class EntityDropParticleFX extends Particle {
 
 	private int bobTimer;
 
@@ -59,35 +60,31 @@ public class EntityDropParticleFX extends EntityFX {
 		this.motionZ *= 0.9800000190734863D;
 
 		if (this.particleMaxAge-- <= 0) {
-			this.setDead();
+			setExpired();
 		}
-		if (this.onGround) {
+		if (this.isCollided) {
 			this.setParticleTextureIndex(114);
 			this.motionX *= 0.699999988079071D;
 			this.motionZ *= 0.699999988079071D;
 		}
 		if (this.particleGravity > 0) {
-			Material material = this.worldObj.getBlock(MathHelper.floor(this.posX), MathHelper.floor(this.posY), MathHelper.floor(this.posZ)).getMaterial();
+			IBlockState ibs = this.worldObj.getBlockState(new BlockPos(MathHelper.floor(this.posX), MathHelper.floor(this.posY), MathHelper.floor(this.posZ)));
+			Material material = ibs.getMaterial();
 
 			if (material.isLiquid() || material.isSolid()) {
-				double d0 = MathHelper.floor(this.posY)
-						+ 1
-						- BlockLiquid.getLiquidHeightPercent(this.worldObj.getBlockMetadata(MathHelper.floor(this.posX), MathHelper.floor(this.posY),
-								MathHelper.floor(this.posZ)));
+				double d0 = MathHelper.floor(this.posY) + 1 - BlockLiquid.getLiquidHeightPercent(ibs.getBlock().getMetaFromState(ibs));
 				if (this.posY < d0) {
-					this.setDead();
+					this.setExpired();
 				}
 			}
 		} else {
-			Material material = this.worldObj.getBlock(MathHelper.ceil(this.posX), MathHelper.ceil(this.posY), MathHelper.ceil(this.posZ)).getMaterial();
-
+			IBlockState ibs = this.worldObj.getBlockState(new BlockPos(MathHelper.floor(this.posX), MathHelper.floor(this.posY), MathHelper.floor(this.posZ)));
+			Material material = ibs.getMaterial();
+			
 			if (material.isLiquid() || material.isSolid()) {
-				double d0 = MathHelper.ceil(this.posY)
-						+ 1
-						- BlockLiquid.getLiquidHeightPercent(this.worldObj.getBlockMetadata(MathHelper.ceil(this.posX), MathHelper.ceil(this.posY),
-								MathHelper.ceil(this.posZ)));
+				double d0 = MathHelper.ceil(this.posY) + 1 - BlockLiquid.getLiquidHeightPercent(ibs.getBlock().getMetaFromState(ibs));
 				if (this.posY > d0) {
-					this.setDead();
+					this.setExpired();
 				}
 			}
 		}

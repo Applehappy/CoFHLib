@@ -64,12 +64,6 @@ public class SlotCustomInventory extends Slot {
 	}
 
 	@Override
-	public boolean isSlotInInventory(IInventory inventory, int slot) {
-
-		return false;
-	}
-
-	@Override
 	public boolean canTakeStack(EntityPlayer par1EntityPlayer) {
 
 		return canTake;

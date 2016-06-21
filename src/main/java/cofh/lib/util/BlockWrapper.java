@@ -47,7 +47,7 @@ public final class BlockWrapper {
 		return false;
 	}
 
-	final int getId() {
+	protected final int getId() {
 
 		return Block.getIdFromBlock(block);
 	}

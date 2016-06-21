@@ -3,12 +3,10 @@ package cofh.lib.render;
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ItemRenderer;
-import net.minecraft.client.renderer.RenderBlocks;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.IIcon;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
@@ -42,7 +40,7 @@ public final class RenderHelper {
 
 	public static final Tessellator tessellator() {
 
-		return Tessellator.instance;
+		return Tessellator.getInstance();
 	}
 
 	public static void setColor3ub(int color) {

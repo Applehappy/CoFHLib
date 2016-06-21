@@ -26,9 +26,7 @@ public class SlotAcceptInsertable extends SlotAcceptValid {
 
 	@Override
 	public boolean isItemValid(ItemStack stack) {
-
 		boolean valid = super.isItemValid(stack);
-
 		return valid && sidedInv != null ? sidedInv.canInsertItem(slotNumber, stack, 6) : valid;
 	}
 

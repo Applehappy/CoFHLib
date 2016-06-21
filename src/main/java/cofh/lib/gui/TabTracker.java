@@ -12,10 +12,6 @@ public class TabTracker {
 
 	private static Class<? extends TabBase> openedLeftTab;
 	private static Class<? extends TabBase> openedRightTab;
-	
-	private TabTracker() {
-		
-	}
 
 	public static Class<? extends TabBase> getOpenedLeftTab() {
 

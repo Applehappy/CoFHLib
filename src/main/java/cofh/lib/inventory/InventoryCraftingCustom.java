@@ -50,7 +50,8 @@ public class InventoryCraftingCustom extends InventoryCrafting {
 		}
 		return null;
 	}
-
+	
+	/*
 	@Override
 	public ItemStack getStackInSlotOnClosing(int slot) {
 
@@ -61,6 +62,7 @@ public class InventoryCraftingCustom extends InventoryCrafting {
 		}
 		return null;
 	}
+	*/
 
 	@Override
 	public ItemStack decrStackSize(int slot, int amount) {
@@ -109,15 +111,15 @@ public class InventoryCraftingCustom extends InventoryCrafting {
 
 		return true;
 	}
-
+	
 	@Override
-	public void openInventory() {
-
+	public void openInventory(EntityPlayer player) {
+		super.openInventory(player);
 	}
-
+	
 	@Override
-	public void closeInventory() {
-
+	public void closeInventory(EntityPlayer player) {
+		super.closeInventory(player);
 	}
 
 	@Override

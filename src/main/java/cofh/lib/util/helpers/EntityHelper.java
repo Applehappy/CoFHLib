@@ -1,20 +1,19 @@
 package cofh.lib.util.helpers;
 
-import cpw.mods.fml.common.FMLCommonHandler;
-
 import java.util.Iterator;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.network.play.server.S07PacketRespawn;
-import net.minecraft.network.play.server.S1DPacketEntityEffect;
+import net.minecraft.network.play.server.SPacketEntityEffect;
+import net.minecraft.network.play.server.SPacketRespawn;
 import net.minecraft.potion.PotionEffect;
-import net.minecraft.server.management.ServerConfigurationManager;
-import net.minecraft.util.MathHelper;
+import net.minecraft.server.management.PlayerList;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.world.WorldProvider;
 import net.minecraft.world.WorldServer;
-import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.common.DimensionManager;
+import net.minecraftforge.fml.common.FMLCommonHandler;
 
 /**
  * This class contains various helper functions related to Entities.
@@ -29,42 +28,44 @@ public class EntityHelper {
 	}
 
 	public static int getEntityFacingCardinal(EntityLivingBase living) {
-
 		int quadrant = cofh.lib.util.helpers.MathHelper.floor(living.rotationYaw * 4.0F / 360.0F + 0.5D) & 3;
-
 		switch (quadrant) {
-		case 0:
-			return 2;
-		case 1:
-			return 5;
-		case 2:
-			return 3;
-		default:
-			return 4;
+		case 0: return 2;
+		case 1: return 5;
+		case 2: return 3;
+		default: return 4;
 		}
 	}
-
-	public static ForgeDirection getEntityFacingForgeDirection(EntityLivingBase living) {
-
-		return ForgeDirection.VALID_DIRECTIONS[getEntityFacingCardinal(living)];
+	
+	public static EnumFacing getEntityFacing(EntityLivingBase living) {
+		int quadrant = cofh.lib.util.helpers.MathHelper.floor(living.rotationYaw * 4.0F / 360.0F + 0.5D) & 3;
+		switch (quadrant) {
+		case 0: return EnumFacing.NORTH;
+		case 1: return EnumFacing.EAST;
+		case 2: return EnumFacing.SOUTH;
+		default: return EnumFacing.WEST;
+		}
+	}
+	
+	@Deprecated
+	public static EnumFacing getEntityFacingForgeDirection(EntityLivingBase living) {
+		return EnumFacing.VALUES[getEntityFacingCardinal(living)];
 	}
 
-	public static void transferEntityToDimension(Entity entity, int dimension, ServerConfigurationManager manager) {
-
+	public static void transferEntityToDimension(Entity entity, int dimension) {
 		if (entity instanceof EntityPlayerMP) {
-			transferPlayerToDimension((EntityPlayerMP) entity, dimension, manager);
+			transferPlayerToDimension((EntityPlayerMP) entity, dimension);
 			return;
 		}
-		WorldServer worldserver = manager.getServerInstance().worldServerForDimension(entity.dimension);
+		WorldServer worldserver = DimensionManager.getWorld(entity.dimension);
 		entity.dimension = dimension;
-		WorldServer worldserver1 = manager.getServerInstance().worldServerForDimension(entity.dimension);
-		worldserver.removePlayerEntityDangerously(entity);
-		if (entity.riddenByEntity != null) {
-			entity.riddenByEntity.mountEntity(null);
+		WorldServer worldserver1 = DimensionManager.getWorld(entity.dimension);
+		worldserver.removeEntityDangerously(entity);
+		
+		if (!entity.getPassengers().isEmpty()) {
+			for(Entity e : entity.getPassengers()) e.dismountRidingEntity();
 		}
-		if (entity.ridingEntity != null) {
-			entity.mountEntity(null);
-		}
+		if (entity.getRidingEntity() != null) entity.dismountRidingEntity();
 		entity.isDead = false;
 		transferEntityToWorld(entity, worldserver, worldserver1);
 	}
@@ -78,8 +79,8 @@ public class EntityHelper {
 		double z = entity.posZ * moveFactor;
 
 		oldWorld.theProfiler.startSection("placing");
-		x = MathHelper.clamp_double(x, -29999872, 29999872);
-		z = MathHelper.clamp_double(z, -29999872, 29999872);
+		x = MathHelper.clamp(x, -29999872, 29999872);
+		z = MathHelper.clamp(z, -29999872, 29999872);
 
 		if (entity.isEntityAlive()) {
 			entity.setLocationAndAngles(x, entity.posY, z, entity.rotationYaw, entity.rotationPitch);
@@ -92,33 +93,34 @@ public class EntityHelper {
 		entity.setWorld(newWorld);
 	}
 
-	public static void transferPlayerToDimension(EntityPlayerMP player, int dimension, ServerConfigurationManager manager) {
+	public static void transferPlayerToDimension(EntityPlayerMP player, int dimension) {
 
 		int oldDim = player.dimension;
-		WorldServer worldserver = manager.getServerInstance().worldServerForDimension(player.dimension);
+		WorldServer worldserver = DimensionManager.getWorld(player.dimension);
 		player.dimension = dimension;
-		WorldServer worldserver1 = manager.getServerInstance().worldServerForDimension(player.dimension);
-		player.playerNetServerHandler.sendPacket(new S07PacketRespawn(player.dimension, player.worldObj.difficultySetting, player.worldObj.getWorldInfo()
-				.getTerrainType(), player.theItemInWorldManager.getGameType()));
-		worldserver.removePlayerEntityDangerously(player);
-		if (player.riddenByEntity != null) {
-			player.riddenByEntity.mountEntity(null);
+		WorldServer worldserver1 = DimensionManager.getWorld(player.dimension);
+		player.connection.sendPacket(new SPacketRespawn(player.dimension, player.worldObj.getDifficulty(), player.worldObj.getWorldInfo().getTerrainType(), player.interactionManager.getGameType()));
+		
+		worldserver.removeEntityDangerously(player);
+		if (!player.getPassengers().isEmpty()) {
+			for(Entity e : player.getPassengers()) e.dismountRidingEntity();
 		}
-		if (player.ridingEntity != null) {
-			player.mountEntity(null);
-		}
+		if (player.getRidingEntity() != null) player.dismountRidingEntity();
 		player.isDead = false;
 		transferEntityToWorld(player, worldserver, worldserver1);
-		manager.func_72375_a(player, worldserver);
-		player.playerNetServerHandler.setPlayerLocation(player.posX, player.posY, player.posZ, player.rotationYaw, player.rotationPitch);
-		player.theItemInWorldManager.setWorld(worldserver1);
-		manager.updateTimeAndWeatherForPlayer(player, worldserver1);
-		manager.syncPlayerInventory(player);
+		
+		/*manager.func_72375_a(player, worldserver); XXX Not replaced, yet. TODO Check if replacement is necessary*/
+		player.connection.setPlayerLocation(player.posX, player.posY, player.posZ, player.rotationYaw, player.rotationPitch);
+		player.interactionManager.setWorld(worldserver1);
+		PlayerList pl = worldserver1.getMinecraftServer().getPlayerList();
+		pl.updateTimeAndWeatherForPlayer(player, worldserver1);
+		pl.syncPlayerInventory(player);
+		
 		Iterator<PotionEffect> iterator = player.getActivePotionEffects().iterator();
 
 		while (iterator.hasNext()) {
 			PotionEffect potioneffect = iterator.next();
-			player.playerNetServerHandler.sendPacket(new S1DPacketEntityEffect(player.getEntityId(), potioneffect));
+			player.connection.sendPacket(new SPacketEntityEffect(player.getEntityId(), potioneffect));
 		}
 		FMLCommonHandler.instance().firePlayerChangedDimensionEvent(player, oldDim, dimension);
 	}

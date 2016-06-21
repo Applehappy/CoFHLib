@@ -4,26 +4,28 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.Multimap;
-import cpw.mods.fml.common.eventhandler.EventPriority;
-import cpw.mods.fml.common.eventhandler.SubscribeEvent;
-import cpw.mods.fml.common.registry.RegistryDelegate;
-import cpw.mods.fml.relauncher.ReflectionHelper;
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
 
 import java.awt.image.BufferedImage;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+
 import javax.imageio.ImageIO;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.item.Item;
-import net.minecraft.util.RegistryNamespaced;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.registry.RegistryNamespaced;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.world.WorldEvent;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.registry.RegistryDelegate;
+import net.minecraftforge.fml.relauncher.ReflectionHelper;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 public class RegistryUtils {
 
@@ -33,20 +35,20 @@ public class RegistryUtils {
 
 	private static class Repl {
 
-		private static IdentityHashMap<RegistryNamespaced, Multimap<String, Object>> replacements;
+		private static IdentityHashMap<RegistryNamespaced<Object,Object>, Multimap<String, Object>> replacements;
 		private static Class<RegistryDelegate<?>> DelegateClass;
 
 		@SuppressWarnings({ "rawtypes", "unchecked" })
 		private static void overwrite_do(RegistryNamespaced registry, String name, Object object, Object oldThing) {
-
 			int id = registry.getIDForObject(oldThing);
+			
 			BiMap map = ((BiMap) registry.registryObjects);
 			registry.underlyingIntegerMap.func_148746_a(object, id);
 			map.remove(name);
 			map.forcePut(name, object);
 		}
 
-		private static void alterDelegateChain(RegistryNamespaced registry, String id, Object object) {
+		private static void alterDelegateChain(RegistryNamespaced<?,?> registry, String id, Object object) {
 
 			Multimap<String, Object> map = replacements.get(registry);
 			List<Object> c = (List<Object>) map.get(id);
@@ -69,7 +71,7 @@ public class RegistryUtils {
 
 		static {
 
-			replacements = new IdentityHashMap<RegistryNamespaced, Multimap<String, Object>>(2);
+			replacements = new IdentityHashMap<RegistryNamespaced<Object,Object>, Multimap<String, Object>>(2);
 			MinecraftForge.EVENT_BUS.register(new RegistryUtils());
 			try {
 				DelegateClass = (Class<RegistryDelegate<?>>) Class.forName("cpw.mods.fml.common.registry.RegistryDelegate$Delegate");
@@ -85,8 +87,8 @@ public class RegistryUtils {
 		if (Repl.replacements.size() < 1) {
 			return;
 		}
-		for (Map.Entry<RegistryNamespaced, Multimap<String, Object>> entry : Repl.replacements.entrySet()) {
-			RegistryNamespaced reg = entry.getKey();
+		for (Entry<RegistryNamespaced<Object, Object>, Multimap<String, Object>> entry : Repl.replacements.entrySet()) {
+			RegistryNamespaced<Object,Object> reg = entry.getKey();
 			Multimap<String, Object> map = entry.getValue();
 			Iterator<String> v = map.keySet().iterator();
 			while (v.hasNext()) {
@@ -107,8 +109,7 @@ public class RegistryUtils {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static void overwriteEntry(RegistryNamespaced registry, String name, Object object) {
-
+	public static void overwriteEntry(RegistryNamespaced<Object,Object> registry, String name, Object object) {
 		Object oldThing = registry.getObject(name);
 		Repl.overwrite_do(registry, name, object, oldThing);
 		Multimap<String, Object> reg = Repl.replacements.get(registry);
@@ -124,7 +125,6 @@ public class RegistryUtils {
 
 	@SideOnly(Side.CLIENT)
 	public static boolean textureExists(ResourceLocation texture) {
-
 		try {
 			Minecraft.getMinecraft().getResourceManager().getAllResources(texture);
 			return true;

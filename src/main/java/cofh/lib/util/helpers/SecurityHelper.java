@@ -2,12 +2,9 @@ package cofh.lib.util.helpers;
 
 import cofh.api.tileentity.ISecurable;
 import cofh.api.tileentity.ISecurable.AccessMode;
+
 import com.google.common.base.Strings;
 import com.mojang.authlib.GameProfile;
-import cpw.mods.fml.common.FMLCommonHandler;
-import cpw.mods.fml.common.eventhandler.SubscribeEvent;
-import cpw.mods.fml.common.gameevent.PlayerEvent.PlayerLoggedInEvent;
-import cpw.mods.fml.relauncher.ReflectionHelper;
 
 import java.io.IOException;
 import java.util.List;
@@ -24,8 +21,13 @@ import net.minecraft.network.EnumConnectionState;
 import net.minecraft.network.INetHandler;
 import net.minecraft.network.Packet;
 import net.minecraft.network.PacketBuffer;
+import net.minecraft.network.play.INetHandlerPlayServer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.management.PreYggdrasilConverter;
+import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedInEvent;
+import net.minecraftforge.fml.relauncher.ReflectionHelper;
 
 public class SecurityHelper {
 
@@ -33,10 +35,7 @@ public class SecurityHelper {
 	private static boolean setup = false;
 
 	public static void setup() {
-
-		if (setup) {
-			return;
-		}
+		if (setup) return;
 		EnumConnectionState.PLAY.func_150755_b().put(-26, Login.S__PacketSendUUID.class);
 		Map<Class<?>, EnumConnectionState> data;
 		data = ReflectionHelper.getPrivateValue(EnumConnectionState.class, null, "field_150761_f");
@@ -101,12 +100,13 @@ public class SecurityHelper {
 	public static void addOwnerInformation(ItemStack stack, List<String> list) {
 
 		if (SecurityHelper.isSecure(stack)) {
-			boolean hasUUID = stack.stackTagCompound.hasKey("OwnerUUID");
-			if (!stack.stackTagCompound.hasKey("Owner") && !hasUUID) {
+			NBTTagCompound nbt = stack.getTagCompound();
+			boolean hasUUID = nbt.hasKey("OwnerUUID");
+			if (!nbt.hasKey("Owner") && !hasUUID) {
 				list.add(StringHelper.localize("info.cofh.owner") + ": " + StringHelper.localize("info.cofh.none"));
 			} else {
-				if (hasUUID && stack.stackTagCompound.hasKey("Owner")) {
-					list.add(StringHelper.localize("info.cofh.owner") + ": " + stack.stackTagCompound.getString("Owner") + " \u0378");
+				if (hasUUID && nbt.hasKey("Owner")) {
+					list.add(StringHelper.localize("info.cofh.owner") + ": " + nbt.getString("Owner") + " \u0378");
 				} else {
 					list.add(StringHelper.localize("info.cofh.owner") + ": " + StringHelper.localize("info.cofh.anotherplayer"));
 				}
@@ -118,7 +118,7 @@ public class SecurityHelper {
 
 		if (SecurityHelper.isSecure(stack)) {
 			String accessString = "";
-			switch (stack.stackTagCompound.getByte("Access")) {
+			switch (stack.getTagCompound().getByte("Access")) {
 			case 0:
 				accessString = StringHelper.localize("info.cofh.accessPublic");
 				break;
@@ -135,20 +135,18 @@ public class SecurityHelper {
 
 	/* ITEM HELPERS */
 	public static boolean isSecure(ItemStack stack) {
-
-		return stack.stackTagCompound == null ? false : stack.stackTagCompound.hasKey("Secure");
+		NBTTagCompound nbt = stack.getTagCompound();
+		return nbt == null ? false : nbt.hasKey("Secure");
 	}
 
 	public static ItemStack setSecure(ItemStack stack) {
-
-		if (isSecure(stack)) {
-			return stack;
+		if (isSecure(stack)) return stack;
+		NBTTagCompound nbt = stack.getTagCompound();
+		if (nbt == null) {
+			stack.setTagCompound(nbt = new NBTTagCompound());
 		}
-		if (stack.stackTagCompound == null) {
-			stack.setTagCompound(new NBTTagCompound());
-		}
-		stack.stackTagCompound.setBoolean("Secure", true);
-		stack.stackTagCompound.setByte("Access", (byte) 0);
+		nbt.setBoolean("Secure", true);
+		nbt.setByte("Access", (byte) 0);
 		return stack;
 	}
 
@@ -157,29 +155,28 @@ public class SecurityHelper {
 		if (!isSecure(stack)) {
 			return stack;
 		}
-		stack.stackTagCompound.removeTag("Secure");
-		stack.stackTagCompound.removeTag("Access");
-		stack.stackTagCompound.removeTag("OwnerUUID");
-		stack.stackTagCompound.removeTag("Owner");
+		NBTTagCompound nbt = stack.getTagCompound();
+		nbt.removeTag("Secure");
+		nbt.removeTag("Access");
+		nbt.removeTag("OwnerUUID");
+		nbt.removeTag("Owner");
 
-		if (stack.stackTagCompound.hasNoTags()) {
-			stack.stackTagCompound = null;
-		}
+		if (nbt.hasNoTags()) stack.setTagCompound(null);
 		return stack;
 	}
 
 	public static boolean setAccess(ItemStack stack, AccessMode access) {
-
+		
 		if (!isSecure(stack)) {
 			return false;
 		}
-		stack.stackTagCompound.setByte("Access", (byte) access.ordinal());
+		stack.getTagCompound().setByte("Access", (byte) access.ordinal());
 		return true;
 	}
 
 	public static AccessMode getAccess(ItemStack stack) {
-
-		return stack.stackTagCompound == null ? AccessMode.PUBLIC : AccessMode.values()[stack.stackTagCompound.getByte("Access")];
+		
+		return stack.getTagCompound() == null ? AccessMode.PUBLIC : AccessMode.values()[stack.getTagCompound().getByte("Access")];
 	}
 
 	public static boolean setOwner(ItemStack stack, GameProfile name) {
@@ -193,23 +190,18 @@ public class SecurityHelper {
 	}
 
 	public static GameProfile getOwner(ItemStack stack) {
-
-		if (stack.stackTagCompound != null) {
-			NBTTagCompound nbt = stack.stackTagCompound;
-
-			String uuid = nbt.getString("OwnerUUID");
-			String name = nbt.getString("Owner");
-			if (!Strings.isNullOrEmpty(uuid)) {
-				return new GameProfile(UUID.fromString(uuid), name);
-			} else if (!Strings.isNullOrEmpty(name)) {
-				return new GameProfile(UUID.fromString(PreYggdrasilConverter.func_152719_a(name)), name);
-			}
+		NBTTagCompound nbt = stack.getTagCompound();
+		if (nbt == null) return UNKNOWN_GAME_PROFILE;
+		String uuid = nbt.getString("OwnerUUID");
+		String name = nbt.getString("Owner");
+		if (!Strings.isNullOrEmpty(uuid)) {
+			return new GameProfile(UUID.fromString(uuid), name);
+		} else if (!Strings.isNullOrEmpty(name)) {
+			return new GameProfile(UUID.fromString(PreYggdrasilConverter.convertMobOwnerIfNeeded(server,name)), name);
 		}
-		return UNKNOWN_GAME_PROFILE;
 	}
 
 	public static GameProfile getProfile(UUID uuid, String name) {
-
 		GameProfile owner = MinecraftServer.getServer().func_152358_ax().func_152652_a(uuid);
 		if (owner == null) {
 			GameProfile temp = new GameProfile(uuid, name);
@@ -223,39 +215,32 @@ public class SecurityHelper {
 
 	public static String getOwnerName(ItemStack stack) {
 
-		NBTTagCompound nbt = stack.stackTagCompound;
+		NBTTagCompound nbt = stack.getTagCompound();
 		boolean hasUUID;
-		if (nbt == null || (!(hasUUID = nbt.hasKey("OwnerUUID")) && !nbt.hasKey("Owner"))) {
-			return "[None]";
-		}
-		return hasUUID ? stack.stackTagCompound.getString("Owner") : StringHelper.localize("info.cofh.anotherplayer");
+		if (nbt == null || (!(hasUUID = nbt.hasKey("OwnerUUID")) && !nbt.hasKey("Owner"))) return "[None]";
+		return hasUUID ? nbt.getString("Owner") : StringHelper.localize("info.cofh.anotherplayer");
 	}
 
 	// this class is to avoid an illegal access error from FML's event handler
 	private static class Login {
 
-		public static class S__PacketSendUUID extends Packet {
+		public static class S__PacketSendUUID implements Packet<INetHandlerPlayServer> {
 
 			@SubscribeEvent
 			public void login(PlayerLoggedInEvent evt) {
-
-				((EntityPlayerMP) evt.player).playerNetServerHandler.sendPacket(new S__PacketSendUUID(evt.player));
+				((EntityPlayerMP) evt.player).connection.sendPacket(new S__PacketSendUUID(evt.player));
 			}
 
 			private UUID id;
 
-			public S__PacketSendUUID() {
-
-			}
+			public S__PacketSendUUID() { }
 
 			public S__PacketSendUUID(EntityPlayer player) {
-
 				id = player.getGameProfile().getId();
 			}
 
 			@Override
 			public void readPacketData(PacketBuffer buffer) throws IOException {
-
 				id = new UUID(buffer.readLong(), buffer.readLong());
 			}
 
@@ -265,16 +250,9 @@ public class SecurityHelper {
 				buffer.writeLong(id.getMostSignificantBits());
 				buffer.writeLong(id.getLeastSignificantBits());
 			}
-
+			
 			@Override
-			public boolean hasPriority() {
-
-				return true;
-			}
-
-			@Override
-			public void processPacket(INetHandler p_148833_1_) {
-
+			public void processPacket(INetHandlerPlayServer handler) {
 				cachedId = id;
 			}
 

@@ -62,43 +62,44 @@ public class ItemEnergyContainer extends Item implements IEnergyContainerItem {
 	/* IEnergyContainerItem */
 	@Override
 	public int receiveEnergy(ItemStack container, int maxReceive, boolean simulate) {
-
-		if (container.stackTagCompound == null) {
-			container.stackTagCompound = new NBTTagCompound();
+		NBTTagCompound nbt = container.getTagCompound();
+		if (nbt == null) {
+			nbt = new NBTTagCompound();
+			container.setTagCompound(nbt);
 		}
-		int energy = container.stackTagCompound.getInteger("Energy");
+		int energy = nbt.getInteger("Energy");
 		int energyReceived = Math.min(capacity - energy, Math.min(this.maxReceive, maxReceive));
 
 		if (!simulate) {
 			energy += energyReceived;
-			container.stackTagCompound.setInteger("Energy", energy);
+			nbt.setInteger("Energy", energy);
 		}
 		return energyReceived;
 	}
 
 	@Override
 	public int extractEnergy(ItemStack container, int maxExtract, boolean simulate) {
-
-		if (container.stackTagCompound == null || !container.stackTagCompound.hasKey("Energy")) {
+		NBTTagCompound nbt = container.getTagCompound();
+		if (nbt == null || !nbt.hasKey("Energy")) {
 			return 0;
 		}
-		int energy = container.stackTagCompound.getInteger("Energy");
+		int energy = nbt.getInteger("Energy");
 		int energyExtracted = Math.min(energy, Math.min(this.maxExtract, maxExtract));
 
 		if (!simulate) {
 			energy -= energyExtracted;
-			container.stackTagCompound.setInteger("Energy", energy);
+			nbt.setInteger("Energy", energy);
 		}
 		return energyExtracted;
 	}
 
 	@Override
 	public int getEnergyStored(ItemStack container) {
-
-		if (container.stackTagCompound == null || !container.stackTagCompound.hasKey("Energy")) {
+		NBTTagCompound nbt = container.getTagCompound();
+		if (nbt == null || !nbt.hasKey("Energy")) {
 			return 0;
 		}
-		return container.stackTagCompound.getInteger("Energy");
+		return nbt.getInteger("Energy");
 	}
 
 	@Override

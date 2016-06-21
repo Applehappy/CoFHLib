@@ -19,9 +19,9 @@ public class ArrayHashList<E extends Object> extends AbstractCollection<E> imple
 
 	protected static final class Entry {
 
-		final Object key;
-		final int hash;
-		Entry nextInBucket;
+		protected final Object key;
+		protected final int hash;
+		protected Entry nextInBucket;
 
 		protected Entry(Object key, int keyHash) {
 

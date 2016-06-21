@@ -11,10 +11,6 @@ import net.minecraft.nbt.NBTTagCompound;
  *
  */
 public final class NBTHelper {
-	
-	private NBTHelper() {
-		
-	}
 
 	public static NBTTagCompound getTagCompound(ItemStack stack) {
 

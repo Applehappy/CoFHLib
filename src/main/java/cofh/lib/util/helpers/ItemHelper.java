@@ -1,14 +1,12 @@
 package cofh.lib.util.helpers;
 
 import static net.minecraftforge.oredict.OreDictionary.WILDCARD_VALUE;
-
 import cofh.api.item.IEmpowerableItem;
 import cofh.api.item.IInventoryContainerItem;
 import cofh.api.item.IMultiModeItem;
 import cofh.lib.util.OreDictionaryProxy;
+
 import com.google.common.base.Strings;
-import cpw.mods.fml.common.event.FMLInterModComms;
-import cpw.mods.fml.common.registry.GameRegistry;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,9 +24,12 @@ import net.minecraft.item.crafting.FurnaceRecipes;
 import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
+import net.minecraft.util.EnumHand;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.FluidContainerRegistry;
+import net.minecraftforge.fml.common.event.FMLInterModComms;
+import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.oredict.OreDictionary;
 import net.minecraftforge.oredict.ShapedOreRecipe;
 import net.minecraftforge.oredict.ShapelessOreRecipe;
@@ -96,15 +97,12 @@ public final class ItemHelper {
 	}
 
 	public static ItemStack copyTag(ItemStack container, ItemStack other) {
-
-		if (other != null && other.stackTagCompound != null) {
-			container.stackTagCompound = (NBTTagCompound) other.stackTagCompound.copy();
-		}
+		NBTTagCompound nbt = other.getTagCompound();
+		if (other != null && nbt != null) container.setTagCompound((NBTTagCompound) nbt.copy());
 		return container;
 	}
 
 	public static NBTTagCompound setItemStackTagName(NBTTagCompound tag, String name) {
-
 		if (Strings.isNullOrEmpty(name)) {
 			return null;
 		}
@@ -125,9 +123,7 @@ public final class ItemHelper {
 		stack.stackSize = nbt.getInteger("Count");
 		stack.setItemDamage(Math.max(0, nbt.getShort("Damage")));
 
-		if (nbt.hasKey("tag", 10)) {
-			stack.stackTagCompound = nbt.getCompoundTag("tag");
-		}
+		if (nbt.hasKey("tag", 10)) stack.setTagCompound(nbt.getCompoundTag("tag"));
 		return stack;
 	}
 
@@ -136,10 +132,9 @@ public final class ItemHelper {
 		nbt.setShort("id", (short) Item.getIdFromItem(stack.getItem()));
 		nbt.setInteger("Count", stack.stackSize);
 		nbt.setShort("Damage", (short) getItemDamage(stack));
-
-		if (stack.stackTagCompound != null) {
-			nbt.setTag("tag", stack.stackTagCompound);
-		}
+		
+		NBTTagCompound nbttag = stack.getTagCompound();
+		if (nbttag != null) nbt.setTag("tag", nbttag);
 		return nbt;
 	}
 
@@ -148,31 +143,29 @@ public final class ItemHelper {
 		nbt.setShort("id", (short) Item.getIdFromItem(stack.getItem()));
 		nbt.setInteger("Count", amount);
 		nbt.setShort("Damage", (short) getItemDamage(stack));
-
-		if (stack.stackTagCompound != null) {
-			nbt.setTag("tag", stack.stackTagCompound);
-		}
+		
+		
+		NBTTagCompound nbto = stack.getTagCompound();
+		if (nbto != null) nbt.setTag("tag", nbto);
 		return nbt;
 	}
 
 	public static String getNameFromItemStack(ItemStack stack) {
-
-		if (stack == null || stack.stackTagCompound == null || !stack.stackTagCompound.hasKey("display")) {
-			return "";
-		}
-		return stack.stackTagCompound.getCompoundTag("display").getString("Name");
+		NBTTagCompound nbt = stack.getTagCompound();
+		if (stack == null || nbt == null || !nbt.hasKey("display")) return "";
+		return nbt.getCompoundTag("display").getString("Name");
 	}
 
 	public static ItemStack damageItem(ItemStack stack, int amt, Random rand) {
-
-		if (stack != null && stack.isItemStackDamageable() && stack.attemptDamageItem(amt, rand)) {
-			if (--stack.stackSize <= 0) {
-				stack = null;
-			} else {
-				stack.setItemDamage(0);
+		if (stack != null && stack.isItemStackDamageable()) {
+			if (stack.attemptDamageItem(amt, rand)) {
+				if (--stack.stackSize <= 0) {
+					stack = null;
+				} else {
+					stack.setItemDamage(0);
+				}
 			}
 		}
-
 		return stack;
 	}
 
@@ -227,7 +220,7 @@ public final class ItemHelper {
 				return ret;
 			}
 			if (ret != null && !player.inventory.addItemStackToInventory(ret)) {
-				player.func_146097_a(ret, false, true);
+				player.dropItem(ret, false, true);
 			}
 		}
 
@@ -251,7 +244,7 @@ public final class ItemHelper {
 		} else if (allowDrop) {
 			stack.stackSize -= 1;
 			if (dropStack != null && !entityplayer.inventory.addItemStackToInventory(dropStack)) {
-				entityplayer.func_146097_a(dropStack, false, true);
+				entityplayer.dropItem(dropStack, false, true);
 			}
 			return true;
 		}
@@ -262,8 +255,7 @@ public final class ItemHelper {
 	 * This prevents an overridden getDamage() call from messing up metadata acquisition.
 	 */
 	public static int getItemDamage(ItemStack stack) {
-
-		return Items.diamond.getDamage(stack);
+		return Items.DIAMOND.getDamage(stack);
 	}
 
 	/**
@@ -287,8 +279,8 @@ public final class ItemHelper {
 		} else if (dmgItems[1] != null && dmgItems[0].getItem() == dmgItems[1].getItem() && dmgItems[0].stackSize == 1 && dmgItems[1].stackSize == 1
 				&& dmgItems[0].getItem().isRepairable()) {
 			Item theItem = dmgItems[0].getItem();
-			int var13 = theItem.getMaxDamage() - dmgItems[0].getItemDamageForDisplay();
-			int var8 = theItem.getMaxDamage() - dmgItems[1].getItemDamageForDisplay();
+			int var13 = theItem.getMaxDamage() - dmgItems[0].getItemDamage();
+			int var8 = theItem.getMaxDamage() - dmgItems[1].getItemDamage();
 			int var9 = var13 + var8 + theItem.getMaxDamage() * 5 / 100;
 			int var10 = Math.max(0, theItem.getMaxDamage() - var9);
 
@@ -730,7 +722,7 @@ public final class ItemHelper {
 		if (out == null | in == null) {
 			return false;
 		}
-		FurnaceRecipes.smelting().func_151394_a(cloneStack(in, 1), cloneStack(out), 0);
+		FurnaceRecipes.instance().addSmeltingRecipe(cloneStack(in, 1), cloneStack(out), 0);
 		return true;
 	}
 
@@ -739,7 +731,7 @@ public final class ItemHelper {
 		if (out == null | in == null) {
 			return false;
 		}
-		FurnaceRecipes.smelting().func_151394_a(cloneStack(in, 1), cloneStack(out), 0);
+		FurnaceRecipes.instance().addSmeltingRecipe(cloneStack(in, 1), cloneStack(out), 0);
 		return true;
 	}
 
@@ -748,7 +740,7 @@ public final class ItemHelper {
 		if (out == null | in == null) {
 			return false;
 		}
-		FurnaceRecipes.smelting().func_151394_a(cloneStack(in, 1), cloneStack(out), 0);
+		FurnaceRecipes.instance().addSmeltingRecipe(cloneStack(in, 1), cloneStack(out), 0);
 		return true;
 	}
 
@@ -757,7 +749,7 @@ public final class ItemHelper {
 		if (out == null | in == null) {
 			return false;
 		}
-		FurnaceRecipes.smelting().func_151394_a(cloneStack(in, 1), cloneStack(out), XP);
+		FurnaceRecipes.instance().addSmeltingRecipe(cloneStack(in, 1), cloneStack(out), XP);
 		return true;
 	}
 
@@ -766,7 +758,7 @@ public final class ItemHelper {
 		if (out == null | in == null) {
 			return false;
 		}
-		FurnaceRecipes.smelting().func_151394_a(cloneStack(in, 1), cloneStack(out), XP);
+		FurnaceRecipes.instance().addSmeltingRecipe(cloneStack(in, 1), cloneStack(out), XP);
 		return true;
 	}
 
@@ -775,7 +767,7 @@ public final class ItemHelper {
 		if (out == null | in == null) {
 			return false;
 		}
-		FurnaceRecipes.smelting().func_151394_a(cloneStack(in, 1), cloneStack(out), XP);
+		FurnaceRecipes.instance().addSmeltingRecipe(cloneStack(in, 1), cloneStack(out), XP);
 		return true;
 	}
 
@@ -784,7 +776,7 @@ public final class ItemHelper {
 		if (out == null | in == null) {
 			return false;
 		}
-		FurnaceRecipes.smelting().func_151394_a(cloneStack(in, 1), cloneStack(out), 0.1f);
+		FurnaceRecipes.instance().addSmeltingRecipe(cloneStack(in, 1), cloneStack(out), 0.1f);
 		return true;
 	}
 
@@ -793,7 +785,7 @@ public final class ItemHelper {
 		if (out == null | in == null) {
 			return false;
 		}
-		FurnaceRecipes.smelting().func_151394_a(cloneStack(in, 1), cloneStack(out), 0.1f);
+		FurnaceRecipes.instance().addSmeltingRecipe(cloneStack(in, 1), cloneStack(out), 0.1f);
 		return true;
 	}
 
@@ -802,7 +794,7 @@ public final class ItemHelper {
 		if (out == null | in == null) {
 			return false;
 		}
-		FurnaceRecipes.smelting().func_151394_a(cloneStack(in, 1), cloneStack(out), 0.1f);
+		FurnaceRecipes.instance().addSmeltingRecipe(cloneStack(in, 1), cloneStack(out), 0.1f);
 		return true;
 	}
 
@@ -819,9 +811,8 @@ public final class ItemHelper {
 	}
 
 	public static void registerWithHandlers(String oreName, ItemStack stack) {
-
 		OreDictionary.registerOre(oreName, stack);
-		GameRegistry.registerCustomItemStack(oreName, stack);
+		//GameRegistry.registerCustomItemStack(oreName, stack); XXX REMOVED
 		FMLInterModComms.sendMessage("ForgeMicroblock", "microMaterial", stack);
 	}
 
@@ -900,78 +891,73 @@ public final class ItemHelper {
 	// }
 
 	/* EMPOWERED ITEM HELPERS */
-	public static boolean isPlayerHoldingEmpowerableItem(EntityPlayer player) {
-
-		Item equipped = player.getCurrentEquippedItem() != null ? player.getCurrentEquippedItem().getItem() : null;
+	public static boolean isPlayerHoldingEmpowerableItem(EntityPlayer player, EnumHand hand) {
+		Item equipped = player.getHeldItem(hand) != null ? player.getHeldItem(hand).getItem() : null;
 		return equipped instanceof IEmpowerableItem;
 	}
 
-	public static boolean isPlayerHoldingEmpoweredItem(EntityPlayer player) {
-
-		Item equipped = player.getCurrentEquippedItem() != null ? player.getCurrentEquippedItem().getItem() : null;
-		return equipped instanceof IEmpowerableItem && ((IEmpowerableItem) equipped).isEmpowered(player.getCurrentEquippedItem());
+	public static boolean isPlayerHoldingEmpoweredItem(EntityPlayer player, EnumHand hand) {
+		Item equipped = player.getHeldItem(hand) != null ? player.getHeldItem(hand).getItem() : null;
+		return equipped instanceof IEmpowerableItem && ((IEmpowerableItem) equipped).isEmpowered(player.getHeldItem(hand));
 	}
 
-	public static boolean toggleHeldEmpowerableItemState(EntityPlayer player) {
-
-		ItemStack equipped = player.getCurrentEquippedItem();
+	public static boolean toggleHeldEmpowerableItemState(EntityPlayer player, EnumHand hand) {
+		
+		ItemStack equipped = player.getHeldItem(hand);
 		IEmpowerableItem empowerableItem = (IEmpowerableItem) equipped.getItem();
-
+		
 		return empowerableItem.setEmpoweredState(equipped, !empowerableItem.isEmpowered(equipped));
 	}
 
 	/* MULTIMODE ITEM HELPERS */
-	public static boolean isPlayerHoldingMultiModeItem(EntityPlayer player) {
-
-		Item equipped = player.getCurrentEquippedItem() != null ? player.getCurrentEquippedItem().getItem() : null;
+	public static boolean isPlayerHoldingMultiModeItem(EntityPlayer player,EnumHand hand) {
+		Item equipped = player.getHeldItem(hand) != null ? player.getHeldItem(hand).getItem() : null;
 		return equipped instanceof IMultiModeItem;
 	}
 
-	public static boolean incrHeldMultiModeItemState(EntityPlayer player) {
-
-		ItemStack equipped = player.getCurrentEquippedItem();
+	public static boolean incrHeldMultiModeItemState(EntityPlayer player, EnumHand hand) {
+		ItemStack equipped = player.getHeldItem(hand);
 		IMultiModeItem multiModeItem = (IMultiModeItem) equipped.getItem();
 
 		return multiModeItem.incrMode(equipped);
 	}
 
-	public static boolean decrHeldMultiModeItemState(EntityPlayer player) {
-
-		ItemStack equipped = player.getCurrentEquippedItem();
+	public static boolean decrHeldMultiModeItemState(EntityPlayer player, EnumHand hand) {
+		ItemStack equipped = player.getHeldItem(hand);
 		IMultiModeItem multiModeItem = (IMultiModeItem) equipped.getItem();
-
+		
 		return multiModeItem.incrMode(equipped);
 	}
 
-	public static boolean setHeldMultiModeItemState(EntityPlayer player, int mode) {
-
-		ItemStack equipped = player.getCurrentEquippedItem();
+	public static boolean setHeldMultiModeItemState(EntityPlayer player, EnumHand hand, int mode) {
+		
+		ItemStack equipped = player.getHeldItem(hand);
 		IMultiModeItem multiModeItem = (IMultiModeItem) equipped.getItem();
-
+		
 		return multiModeItem.setMode(equipped, mode);
 	}
 
 	/**
 	 * Determine if a player is holding a registered Fluid Container.
 	 */
-	public static final boolean isPlayerHoldingFluidContainer(EntityPlayer player) {
-
-		return FluidContainerRegistry.isContainer(player.getCurrentEquippedItem());
+	public static final boolean isPlayerHoldingFluidContainer(EntityPlayer player, EnumHand hand) {
+		
+		return FluidContainerRegistry.isContainer(player.getHeldItem(hand));
 	}
 
 	public static final boolean isPlayerHoldingFluidContainerItem(EntityPlayer player) {
-
+		
 		return FluidHelper.isPlayerHoldingFluidContainerItem(player);
 	}
 
 	public static final boolean isPlayerHoldingEnergyContainerItem(EntityPlayer player) {
-
+		
 		return EnergyHelper.isPlayerHoldingEnergyContainerItem(player);
 	}
 
-	public static final boolean isPlayerHoldingNothing(EntityPlayer player) {
-
-		return player.getCurrentEquippedItem() == null;
+	public static final boolean isPlayerHoldingNothing(EntityPlayer player, EnumHand hand) {
+		
+		return player.getHeldItem(hand) == null;
 	}
 
 	public static Item getItemFromStack(ItemStack theStack) {
@@ -987,32 +973,32 @@ public final class ItemHelper {
 		return itemA == itemB || itemA.equals(itemB);
 	}
 
-	public static final boolean isPlayerHoldingItem(Class<?> item, EntityPlayer player) {
+	public static final boolean isPlayerHoldingItem(Class<?> item, EntityPlayer player, EnumHand hand) {
 
-		return item.isInstance(getItemFromStack(player.getCurrentEquippedItem()));
+		return item.isInstance(getItemFromStack(player.getHeldItem(hand)));
 	}
 
 	/**
 	 * Determine if a player is holding an ItemStack of a specific Item type.
 	 */
-	public static final boolean isPlayerHoldingItem(Item item, EntityPlayer player) {
-
-		return areItemsEqual(item, getItemFromStack(player.getCurrentEquippedItem()));
+	public static final boolean isPlayerHoldingItem(Item item, EntityPlayer player, EnumHand hand) {
+		
+		return areItemsEqual(item, getItemFromStack(player.getHeldItem(hand)));
 	}
 
 	/**
 	 * Determine if a player is holding an ItemStack with a specific Item ID, Metadata, and NBT.
 	 */
-	public static final boolean isPlayerHoldingItemStack(ItemStack stack, EntityPlayer player) {
-
-		return itemsEqualWithMetadata(stack, player.getCurrentEquippedItem());
+	public static final boolean isPlayerHoldingItemStack(ItemStack stack, EntityPlayer player, EnumHand hand) {
+		
+		return itemsEqualWithMetadata(stack, player.getHeldItem(hand));
 	}
 
 	/**
 	 * Determine if the damage of two ItemStacks is equal. Assumes both itemstacks are of type A.
 	 */
 	public static boolean itemsDamageEqual(ItemStack stackA, ItemStack stackB) {
-
+		
 		return (!stackA.getHasSubtypes() && stackA.getMaxDamage() == 0) || (getItemDamage(stackA) == getItemDamage(stackB));
 	}
 
@@ -1031,15 +1017,15 @@ public final class ItemHelper {
 	 * Determine if two ItemStacks have the same Item and NBT.
 	 */
 	public static boolean itemsEqualWithoutMetadata(ItemStack stackA, ItemStack stackB, boolean checkNBT) {
-
-		return itemsEqualWithoutMetadata(stackA, stackB) && (!checkNBT || doNBTsMatch(stackA.stackTagCompound, stackB.stackTagCompound));
+		
+		return itemsEqualWithoutMetadata(stackA, stackB) && (!checkNBT || doNBTsMatch(stackA.getTagCompound(), stackB.getTagCompound()));
 	}
 
 	/**
 	 * Determine if two ItemStacks have the same Item and damage.
 	 */
 	public static boolean itemsEqualWithMetadata(ItemStack stackA, ItemStack stackB) {
-
+		
 		return itemsEqualWithoutMetadata(stackA, stackB) && itemsDamageEqual(stackA, stackB);
 	}
 
@@ -1047,17 +1033,17 @@ public final class ItemHelper {
 	 * Determine if two ItemStacks have the same Item, damage, and NBT.
 	 */
 	public static boolean itemsEqualWithMetadata(ItemStack stackA, ItemStack stackB, boolean checkNBT) {
-
-		return itemsEqualWithMetadata(stackA, stackB) && (!checkNBT || doNBTsMatch(stackA.stackTagCompound, stackB.stackTagCompound));
+		
+		return itemsEqualWithMetadata(stackA, stackB) && (!checkNBT || doNBTsMatch(stackA.getTagCompound(), stackB.getTagCompound()));
 	}
 
 	/**
 	 * Determine if two ItemStacks have the same Item, identical damage, and NBT.
 	 */
 	public static boolean itemsIdentical(ItemStack stackA, ItemStack stackB) {
-
+		
 		return itemsEqualWithoutMetadata(stackA, stackB) && getItemDamage(stackA) == getItemDamage(stackB)
-				&& doNBTsMatch(stackA.stackTagCompound, stackB.stackTagCompound);
+				&& doNBTsMatch(stackA.getTagCompound(), stackB.getTagCompound());
 	}
 
 	/**
@@ -1102,14 +1088,14 @@ public final class ItemHelper {
 	public static boolean isBlacklist(ItemStack output) {
 
 		Item item = output.getItem();
-		return Item.getItemFromBlock(Blocks.birch_stairs) == item || Item.getItemFromBlock(Blocks.jungle_stairs) == item
-				|| Item.getItemFromBlock(Blocks.oak_stairs) == item || Item.getItemFromBlock(Blocks.spruce_stairs) == item
-				|| Item.getItemFromBlock(Blocks.planks) == item || Item.getItemFromBlock(Blocks.wooden_slab) == item;
+		return Item.getItemFromBlock(Blocks.BIRCH_STAIRS) == item || Item.getItemFromBlock(Blocks.JUNGLE_STAIRS) == item
+				|| Item.getItemFromBlock(Blocks.OAK_STAIRS) == item || Item.getItemFromBlock(Blocks.SPRUCE_STAIRS) == item
+				|| Item.getItemFromBlock(Blocks.PLANKS) == item || Item.getItemFromBlock(Blocks.WOODEN_SLAB) == item;
 	}
 
 	public static String getItemNBTString(ItemStack theItem, String nbtKey, String invalidReturn) {
-
-		return theItem.stackTagCompound != null && theItem.stackTagCompound.hasKey(nbtKey) ? theItem.stackTagCompound.getString(nbtKey) : invalidReturn;
+		NBTTagCompound nbt = theItem.getTagCompound();
+		return nbt != null && nbt.hasKey(nbtKey) ? nbt.getString(nbtKey) : invalidReturn;
 	}
 
 	/**
@@ -1121,21 +1107,21 @@ public final class ItemHelper {
 	}
 
 	public static void addInventoryInformation(ItemStack stack, List<String> list, int minSlot, int maxSlot) {
-
-		if (stack.stackTagCompound == null) {
+		NBTTagCompound nbt = stack.getTagCompound();
+		if (nbt == null) {
 			list.add(StringHelper.localize("info.cofh.empty"));
 			return;
 		}
-		if (stack.getItem() instanceof IInventoryContainerItem && stack.stackTagCompound.hasKey("Accessible")) {
+		if (stack.getItem() instanceof IInventoryContainerItem && nbt.hasKey("Accessible")) {
 			addAccessibleInventoryInformation(stack, list, minSlot, maxSlot);
 			return;
 		}
-		if (!stack.stackTagCompound.hasKey("Inventory", Constants.NBT.TAG_LIST)
-				|| stack.stackTagCompound.getTagList("Inventory", stack.stackTagCompound.getId()).tagCount() <= 0) {
+		if (!nbt.hasKey("Inventory", Constants.NBT.TAG_LIST)
+				|| nbt.getTagList("Inventory", nbt.getId()).tagCount() <= 0) {
 			list.add(StringHelper.localize("info.cofh.empty"));
 			return;
 		}
-		NBTTagList nbtList = stack.stackTagCompound.getTagList("Inventory", stack.stackTagCompound.getId());
+		NBTTagList nbtList = nbt.getTagList("Inventory", nbt.getId());
 		ItemStack curStack;
 		ItemStack curStack2;
 
@@ -1204,7 +1190,7 @@ public final class ItemHelper {
 
 		boolean[] visited = new boolean[invSize];
 
-		NBTTagCompound tag = stack.stackTagCompound;
+		NBTTagCompound tag = stack.getTagCompound();
 		if (tag.hasKey("Inventory")) {
 			tag = tag.getCompoundTag("Inventory");
 		}

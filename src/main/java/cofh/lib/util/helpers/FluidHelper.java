@@ -257,10 +257,10 @@ public class FluidHelper {
 
 	public static Fluid lookupFluidForBlock(Block block) {
 
-		if (block == Blocks.flowing_water) {
+		if (block == Blocks.FLOWING_WATER) {
 			return WATER_FLUID;
 		}
-		if (block == Blocks.flowing_lava) {
+		if (block == Blocks.FLOWING_LAVA) {
 			return LAVA_FLUID;
 		}
 		return FluidRegistry.lookupFluidForBlock(block);

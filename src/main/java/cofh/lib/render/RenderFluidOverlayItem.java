@@ -1,9 +1,6 @@
 package cofh.lib.render;
 
 import cofh.lib.util.helpers.ItemHelper;
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
-
 import net.minecraft.client.renderer.ItemRenderer;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.Tessellator;
@@ -11,11 +8,11 @@ import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.IIcon;
-import net.minecraftforge.client.IItemRenderer;
 import net.minecraftforge.fluids.FluidContainerRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidContainerItem;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
@@ -55,9 +52,10 @@ public class RenderFluidOverlayItem implements IItemRenderer {
 		if (item instanceof IFluidContainerItem) {
 			IFluidContainerItem fluidItem = (IFluidContainerItem) item;
 			fluid = fluidItem.getFluid(stack);
-		} else if (item instanceof IFluidOverlayItem 
-					&& item.getRenderPasses(ItemHelper.getItemDamage(stack)) == 2) {
-			fluid = FluidContainerRegistry.getFluidForFilledItem(stack);
+		} else if (item instanceof IFluidOverlayItem) {
+			if (item.getRenderPasses(ItemHelper.getItemDamage(stack)) == 2) {
+				fluid = FluidContainerRegistry.getFluidForFilledItem(stack);
+			}
 		}
 		doRenderItem(type, stack, item, fluid);
 	}
