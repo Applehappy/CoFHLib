@@ -6,7 +6,7 @@ import java.util.Locale;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.item.EnumRarity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.StatCollector;
+import net.minecraft.util.text.translation.I18n;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 
@@ -60,12 +60,12 @@ public final class StringHelper {
 
 	public static String localize(String key) {
 
-		return StatCollector.translateToLocal(key);
+		return I18n.translateToLocal(key);
 	}
 
 	public static String getKeyName(int key) {
 
-		return key < 0 ? StatCollector.translateToLocalFormatted("key.mouseButton", key + 101) : Keyboard.getKeyName(key);
+		return key < 0 ? I18n.translateToLocalFormatted("key.mouseButton", key + 101) : Keyboard.getKeyName(key);
 	}
 
 	public static String getFluidName(FluidStack stack) {
@@ -73,11 +73,11 @@ public final class StringHelper {
 		Fluid fluid = stack.getFluid();
 
 		String name = "" + END;
-		if (fluid.getRarity() == EnumRarity.uncommon) {
+		if (fluid.getRarity() == EnumRarity.UNCOMMON) {
 			name += YELLOW;
-		} else if (fluid.getRarity() == EnumRarity.rare) {
+		} else if (fluid.getRarity() == EnumRarity.RARE) {
 			name += BRIGHT_BLUE;
-		} else if (fluid.getRarity() == EnumRarity.epic) {
+		} else if (fluid.getRarity() == EnumRarity.EPIC) {
 			name += PINK;
 		}
 		name += fluid.getLocalizedName(stack) + END;
@@ -96,11 +96,11 @@ public final class StringHelper {
 	public static String getItemName(ItemStack stack) {
 
 		String name = "" + END;
-		if (stack.getRarity() == EnumRarity.uncommon) {
+		if (stack.getRarity() == EnumRarity.UNCOMMON) {
 			name += YELLOW;
-		} else if (stack.getRarity() == EnumRarity.rare) {
+		} else if (stack.getRarity() == EnumRarity.RARE) {
 			name += BRIGHT_BLUE;
-		} else if (stack.getRarity() == EnumRarity.epic) {
+		} else if (stack.getRarity() == EnumRarity.EPIC) {
 			name += PINK;
 		}
 		name += stack.getDisplayName() + END;
@@ -124,8 +124,8 @@ public final class StringHelper {
 	public static String toNumerals(short v) {
 
 		String s = "potion.potency." + v;
-		if (StatCollector.canTranslate(s))
-			return StatCollector.translateToLocal(s);
+		
+		if (I18n.canTranslate(s)) return I18n.translateToLocal(s);
 		StringBuilder r = new StringBuilder();
 		int i = v;
 		if (i < 0) {

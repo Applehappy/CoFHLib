@@ -1,7 +1,7 @@
 package cofh.api.fluid;
 
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.fluids.IFluidHandler;
+import net.minecraftforge.fluids.capability.IFluidHandler;
 
 /**
  * Extends the IFluidHandler interface to allow manual draining/filling via buckets.

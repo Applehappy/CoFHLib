@@ -1,20 +1,22 @@
 package cofh.lib.util;
 
 import cofh.api.fluid.ITankContainerBucketable;
+import cofh.lib.BlockFacing;
 import cofh.lib.util.helpers.ItemHelper;
 import cofh.lib.util.position.BlockPosition;
-
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumFacing;
 import net.minecraftforge.fluids.FluidContainerRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidTankInfo;
 import net.minecraftforge.fluids.IFluidContainerItem;
-import net.minecraftforge.fluids.IFluidHandler;
 import net.minecraftforge.fluids.IFluidTank;
+import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.minecraftforge.fluids.capability.IFluidTankProperties;
 
 /**
  *
@@ -38,8 +40,8 @@ public class UtilLiquidMover {
 		FluidStack liquid = FluidContainerRegistry.getFluidForFilledItem(ci);
 		if (liquid != null) {
 			Item item = ci.getItem();
-			if (itcb.fill(ForgeDirection.UNKNOWN, liquid, false) == liquid.amount) {
-				itcb.fill(ForgeDirection.UNKNOWN, liquid, true);
+			if (itcb.fill(liquid, false) == liquid.amount) {
+				itcb.fill(liquid, true);
 
 				if (!player.capabilities.isCreativeMode) {
 					if (item.hasContainerItem(ci)) {
@@ -63,8 +65,8 @@ public class UtilLiquidMover {
 			Item item = ci.getItem();
 			IFluidContainerItem fluidContainer = (IFluidContainerItem) item;
 			liquid = fluidContainer.getFluid(ci);
-			if (itcb.fill(ForgeDirection.UNKNOWN, liquid, false) > 0) {
-				int amount = itcb.fill(ForgeDirection.UNKNOWN, liquid, true);
+			if (itcb.fill(liquid, false) > 0) {
+				int amount = itcb.fill(liquid, true);
 				ItemStack drop = ci.splitStack(1);
 				ci.stackSize++;
 				fluidContainer.drain(drop, amount, true);
@@ -104,8 +106,8 @@ public class UtilLiquidMover {
 		boolean isSmartContainer = false;
 		IFluidContainerItem fluidContainer;
 		if (ci != null && (FluidContainerRegistry.isEmptyContainer(ci) || (isSmartContainer = ci.getItem() instanceof IFluidContainerItem))) {
-			for (FluidTankInfo tank : itcb.getTankInfo(ForgeDirection.UNKNOWN)) {
-				FluidStack tankLiquid = tank.fluid;
+			for (IFluidTankProperties tank : itcb.getTankProperties()) {
+				FluidStack tankLiquid = tank.getContents();
 				if (tankLiquid == null || tankLiquid.amount == 0) {
 					continue;
 				}
@@ -118,7 +120,7 @@ public class UtilLiquidMover {
 					if (fluidContainer.fill(filledBucket, tankLiquid, false) > 0) {
 						int amount = fluidContainer.fill(filledBucket, tankLiquid, true);
 						bucketLiquid = new FluidStack(tankLiquid, amount);
-						FluidStack l = itcb.drain(ForgeDirection.UNKNOWN, bucketLiquid, false);
+						FluidStack l = itcb.drain(bucketLiquid, false);
 						if (l == null || l.amount < amount) {
 							filledBucket = null;
 						}
@@ -129,7 +131,7 @@ public class UtilLiquidMover {
 					filledBucket = FluidContainerRegistry.fillFluidContainer(tankLiquid, ci);
 					if (FluidContainerRegistry.isFilledContainer(filledBucket)) {
 						bucketLiquid = FluidContainerRegistry.getFluidForFilledItem(filledBucket);
-						FluidStack l = itcb.drain(ForgeDirection.UNKNOWN, bucketLiquid, false);
+						FluidStack l = itcb.drain(bucketLiquid, false);
 						if (l == null || l.amount < bucketLiquid.amount) {
 							filledBucket = null;
 						}
@@ -143,7 +145,7 @@ public class UtilLiquidMover {
 							player.openContainer.detectAndSendChanges();
 							((EntityPlayerMP) player).sendContainerAndContentsToPlayer(player.openContainer, player.openContainer.getInventory());
 						}
-						itcb.drain(ForgeDirection.UNKNOWN, bucketLiquid, true);
+						itcb.drain(bucketLiquid, true);
 						return true;
 					}
 				}
@@ -160,13 +162,13 @@ public class UtilLiquidMover {
 			l.amount = amount;
 			for (BlockPosition adj : new BlockPosition(from).getAdjacent(true)) {
 
-				IFluidHandler tile = adj.getTileEntity(from.getWorldObj(), IFluidHandler.class);
+				IFluidHandler tile = adj.getTileEntity(from.getWorld(), IFluidHandler.class);
 				if (tile != null) {
-					if (!tile.canFill(adj.orientation.getOpposite(), l.getFluid())) {
-						continue;
-					}
+					/*if (!tile.canFill(l.getFluid())) {
+						continue; FIXME Not yet updated...
+					}*/
 
-					int filled = tile.fill(adj.orientation.getOpposite(), l, true);
+					int filled = tile.fill(l, true);
 					iFluidTank.drain(filled, true);
 					amount -= filled;
 					if (amount <= 0) {

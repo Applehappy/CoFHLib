@@ -1,13 +1,14 @@
 package cofh.lib.gui.element;
 
 import static org.lwjgl.opengl.GL11.*;
-
 import cofh.lib.gui.GuiBase;
 
 import java.util.List;
 
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.VertexBuffer;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.util.ResourceLocation;
 
 /**
@@ -136,12 +137,22 @@ public abstract class ElementBase {
 		glClear(GL_STENCIL_BUFFER_BIT);
 		
 		Tessellator tesselator = Tessellator.getInstance();
+		VertexBuffer vb = tesselator.getBuffer();
 		
-		tesselator.startDrawingQuads();
-		tesselator.addVertex(xStart, yEnd, 0);
+		/* Old Code
+		tesselator.addVertex();
 		tesselator.addVertex(xEnd, yEnd, 0);
 		tesselator.addVertex(xEnd, yStart, 0);
 		tesselator.addVertex(xStart, yStart, 0);
+		 * */
+		
+		//XXX NEEDS TEST!!!
+		vb.begin(7, DefaultVertexFormats.POSITION);
+		vb.pos(xStart, yEnd, 0).endVertex();
+		vb.pos(xStart, yEnd, 0).endVertex();
+		vb.pos(xStart, yEnd, 0).endVertex();
+		vb.pos(xStart, yEnd, 0).endVertex();
+		
 		tesselator.draw();
 
 		glEnable(GL_TEXTURE_2D);

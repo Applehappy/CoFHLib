@@ -575,7 +575,6 @@ public class ArrayHashList<E extends Object> extends AbstractCollection<E> imple
 		}
 
 		@Override
-		@SuppressWarnings("unchecked")
 		public E previous() {
 
 			checkForComodification();

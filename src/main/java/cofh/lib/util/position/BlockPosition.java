@@ -1,5 +1,6 @@
 package cofh.lib.util.position;
 
+import cofh.lib.BlockFacing;
 import cofh.lib.util.helpers.BlockHelper;
 
 import java.io.Serializable;
@@ -9,10 +10,11 @@ import java.util.List;
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.world.ChunkPosition;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
-import net.minecraftforge.common.util.ForgeDirection;
 
 public class BlockPosition implements Comparable<BlockPosition>, Serializable {
 
@@ -21,74 +23,78 @@ public class BlockPosition implements Comparable<BlockPosition>, Serializable {
 	public int x;
 	public int y;
 	public int z;
-	public ForgeDirection orientation;
+	public BlockFacing orientation;
+	
+	private BlockPos pos = null;
+	private boolean posUpToDate = false;
 
 	public BlockPosition(int x, int y, int z) {
-
-		this.x = x;
-		this.y = y;
-		this.z = z;
-		orientation = ForgeDirection.UNKNOWN;
+		this(x,y,z,BlockFacing.UNKNOWN);
 	}
 
-	public BlockPosition(int x, int y, int z, ForgeDirection orientation) {
-
+	public BlockPosition(int x, int y, int z, BlockFacing orientation) {
 		this.x = x;
 		this.y = y;
 		this.z = z;
+		updatePos();
+		
 		this.orientation = orientation;
 	}
 
 	public BlockPosition(BlockPosition p) {
-
 		x = p.x;
 		y = p.y;
 		z = p.z;
+		updatePos();
+		
 		orientation = p.orientation;
 	}
 
 	public BlockPosition(NBTTagCompound tag) {
-
+		
 		x = tag.getInteger("bp_i");
 		y = tag.getInteger("bp_j");
 		z = tag.getInteger("bp_k");
-
-		if (!tag.hasKey("bp_dir")) {
-			orientation = ForgeDirection.UNKNOWN;
-		} else {
-			orientation = ForgeDirection.getOrientation(tag.getByte("bp_dir"));
-		}
+		updatePos();
+		
+		if (!tag.hasKey("bp_dir")) orientation = BlockFacing.UNKNOWN;
+		else orientation = BlockFacing.fromIndex(tag.getByte("bp_dir"));
 	}
 
 	public BlockPosition(TileEntity tile) {
-
-		x = tile.xCoord;
-		y = tile.yCoord;
-		z = tile.zCoord;
-		if (tile instanceof IRotateableTile) {
-			orientation = ((IRotateableTile) tile).getDirectionFacing();
-		} else {
-			orientation = ForgeDirection.UNKNOWN;
-		}
+		BlockPos pos = tile.getPos();
+		x = pos.getX();
+		y = pos.getY();
+		z = pos.getZ();
+		updatePos();
+		
+		if (tile instanceof IRotateableTile) orientation = ((IRotateableTile) tile).getDirectionFacing();
+		else orientation = BlockFacing.UNKNOWN;
+	}
+	
+	private void updatePos(){
+		this.pos = new BlockPos(x,y,z);
+		this.posUpToDate = true;
+	}
+	
+	public BlockPos getBlockPos(){
+		if(!posUpToDate) updatePos();
+		return pos;
 	}
 
 	public static <T extends TileEntity & IRotateableTile> BlockPosition fromRotateableTile(T te) {
-
 		return new BlockPosition(te);
 	}
 
 	public BlockPosition copy() {
-
 		return new BlockPosition(x, y, z, orientation);
 	}
 
-	public BlockPosition copy(ForgeDirection orientation) {
-
+	public BlockPosition copy(BlockFacing orientation) {
 		return new BlockPosition(x, y, z, orientation);
 	}
 
-	public BlockPosition setOrientation(ForgeDirection o) {
-
+	public BlockPosition setOrientation(BlockFacing o) {
 		orientation = o;
 		return this;
 	}
@@ -111,24 +117,23 @@ public class BlockPosition implements Comparable<BlockPosition>, Serializable {
 		return this;
 	}
 
-	public BlockPosition step(ForgeDirection dir) {
-
-		x += dir.offsetX;
-		y += dir.offsetY;
-		z += dir.offsetZ;
+	public BlockPosition step(BlockFacing dir) {
+		Vec3i v = dir.getDirectionVec();
+		x += v.getX();
+		y += v.getY();
+		z += v.getZ();
 		return this;
 	}
 
-	public BlockPosition step(ForgeDirection dir, int dist) {
-
-		x += dir.offsetX * dist;
-		y += dir.offsetY * dist;
-		z += dir.offsetZ * dist;
+	public BlockPosition step(BlockFacing dir, int dist) {
+		Vec3i v = dir.getDirectionVec();
+		x += v.getX() * dist;
+		y += v.getY() * dist;
+		z += v.getZ() * dist;
 		return this;
 	}
 
 	public BlockPosition moveForwards(int step) {
-
 		switch (orientation) {
 		case UP:
 			y = y + step;
@@ -263,36 +268,32 @@ public class BlockPosition implements Comparable<BlockPosition>, Serializable {
 	public List<BlockPosition> getAdjacent(boolean includeVertical) {
 
 		List<BlockPosition> a = new ArrayList<BlockPosition>(4 + (includeVertical ? 2 : 0));
-		a.add(copy(ForgeDirection.EAST).moveForwards(1));
-		a.add(copy(ForgeDirection.WEST).moveForwards(1));
-		a.add(copy(ForgeDirection.SOUTH).moveForwards(1));
-		a.add(copy(ForgeDirection.NORTH).moveForwards(1));
+		a.add(copy(BlockFacing.EAST).moveForwards(1));
+		a.add(copy(BlockFacing.WEST).moveForwards(1));
+		a.add(copy(BlockFacing.SOUTH).moveForwards(1));
+		a.add(copy(BlockFacing.NORTH).moveForwards(1));
 		if (includeVertical) {
-			a.add(copy(ForgeDirection.UP).moveForwards(1));
-			a.add(copy(ForgeDirection.DOWN).moveForwards(1));
+			a.add(copy(BlockFacing.UP).moveForwards(1));
+			a.add(copy(BlockFacing.DOWN).moveForwards(1));
 		}
 		return a;
 	}
 
 	public boolean blockExists(World world) {
-
-		return world.blockExists(x, y, z);
+		return BlockHelper.blockExists(world, getBlockPos());
 	}
 
 	public TileEntity getTileEntity(World world) {
-
-		return world.getTileEntity(x, y, z);
+		return world.getTileEntity(getBlockPos());
 	}
 
 	public Block getBlock(World world) {
-
-		return world.getBlock(x, y, z);
+		return world.getBlockState(getBlockPos()).getBlock();
 	}
 
 	@SuppressWarnings("unchecked")
 	public <T> T getTileEntity(World world, Class<T> targetClass) {
-
-		TileEntity te = world.getTileEntity(x, y, z);
+		TileEntity te = world.getTileEntity(getBlockPos());
 		if (targetClass.isInstance(te)) {
 			return (T) te;
 		} else {
@@ -300,7 +301,7 @@ public class BlockPosition implements Comparable<BlockPosition>, Serializable {
 		}
 	}
 
-	public static ForgeDirection getDirection(int xS, int yS, int zS, int x, int y, int z) {
+	public static BlockFacing getDirection(int xS, int yS, int zS, int x, int y, int z) {
 
 		int dir = 0;
 		if (y < yS) {
@@ -320,36 +321,39 @@ public class BlockPosition implements Comparable<BlockPosition>, Serializable {
 		}
 		switch (dir) {
 		case 2:
-			return ForgeDirection.UP;
+			return BlockFacing.UP;
 		case 1:
-			return ForgeDirection.DOWN;
+			return BlockFacing.DOWN;
 		case 4:
-			return ForgeDirection.WEST;
+			return BlockFacing.WEST;
 		case 8:
-			return ForgeDirection.EAST;
+			return BlockFacing.EAST;
 		case 16:
-			return ForgeDirection.NORTH;
+			return BlockFacing.NORTH;
 		case 32:
-			return ForgeDirection.SOUTH;
+			return BlockFacing.SOUTH;
 		default:
-			return ForgeDirection.UNKNOWN;
+			return BlockFacing.UNKNOWN;
 		}
 	}
-
+	
+	/**@deprecated Use {@link #getTileEntityRaw(World world, BlockPos pos)} instead.*/
+	@Deprecated
 	public static TileEntity getTileEntityRaw(World world, int x, int y, int z) {
-
-		if (!world.blockExists(x, y, z)) {
-			return null;
-		}
-        ChunkPosition chunkposition = new ChunkPosition(x & 15, y, z & 15);
-        Chunk chunk = world.getChunkFromBlockCoords(x, z);
-        TileEntity tileentity = (TileEntity)chunk.chunkTileEntityMap.get(chunkposition);
+		BlockPos pos = new BlockPos(x, y, z);
+		return getTileEntityRaw(world, pos);
+	}
+	
+	public static TileEntity getTileEntityRaw(World world, BlockPos pos) {
+		if (!BlockHelper.blockExists(world, pos)) return null;
+        ChunkPos chunkposition = new ChunkPos(pos);
+        Chunk chunk = world.getChunkFromBlockCoords(pos);
+        TileEntity tileentity = (TileEntity)chunk.getTileEntityMap().get(chunkposition);
 		return tileentity == null || tileentity.isInvalid() ? null : tileentity;
 	}
 
 	@SuppressWarnings("unchecked")
 	public static <T> T getTileEntityRaw(World world, int x, int y, int z, Class<T> targetClass) {
-
 		TileEntity te = getTileEntityRaw(world, x, y, z);
 		if (targetClass.isInstance(te)) {
 			return (T) te;
@@ -358,21 +362,20 @@ public class BlockPosition implements Comparable<BlockPosition>, Serializable {
 		}
 	}
 
-	public static boolean blockExists(TileEntity start, ForgeDirection dir) {
-
-		final int x = start.xCoord + dir.offsetX, y = start.yCoord + dir.offsetY, z = start.zCoord + dir.offsetZ;
-		return start.getWorldObj().blockExists(x, y, z);
+	public static boolean blockExists(TileEntity start, BlockFacing dir) {
+		Vec3i v = dir.getDirectionVec();
+		BlockPos pos = start.getPos().add(v.getX(), v.getY(), v.getZ());
+		return BlockHelper.blockExists(start.getWorld(), pos);
 	}
 
-	public static TileEntity getAdjacentTileEntity(TileEntity start, ForgeDirection dir) {
-
-		final int x = start.xCoord + dir.offsetX, y = start.yCoord + dir.offsetY, z = start.zCoord + dir.offsetZ;
-		return getTileEntityRaw(start.getWorldObj(), x, y, z);
+	public static TileEntity getAdjacentTileEntity(TileEntity start, BlockFacing dir) {
+		Vec3i v = dir.getDirectionVec();
+		BlockPos pos = start.getPos().add(v.getX(), v.getY(), v.getZ());
+		return getTileEntityRaw(start.getWorld(), pos);
 	}
 
 	@SuppressWarnings("unchecked")
-	public static <T> T getAdjacentTileEntity(TileEntity start, ForgeDirection direction, Class<T> targetClass) {
-
+	public static <T> T getAdjacentTileEntity(TileEntity start, BlockFacing direction, Class<T> targetClass) {
 		TileEntity te = getAdjacentTileEntity(start, direction);
 		if (targetClass.isInstance(te)) {
 			return (T) te;
@@ -384,7 +387,6 @@ public class BlockPosition implements Comparable<BlockPosition>, Serializable {
 	/* Comparable */
 	@Override
 	public int compareTo(BlockPosition other) {
-
 		return this.x == other.x ? this.y == other.y ? this.z - other.z : this.y - other.y : this.x - other.x;
 	}
 

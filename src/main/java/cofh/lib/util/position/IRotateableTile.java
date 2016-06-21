@@ -1,17 +1,17 @@
 package cofh.lib.util.position;
 
-import net.minecraftforge.common.util.ForgeDirection;
+import cofh.lib.BlockFacing;
 
 public interface IRotateableTile {
 
 	public boolean canRotate();
 
-	public boolean canRotate(ForgeDirection axis);
+	public boolean canRotate(BlockFacing axis);
 
-	public void rotate(ForgeDirection axis);
+	public void rotate(BlockFacing axis);
 
 	public void rotateDirectlyTo(int facing);
 
-	public ForgeDirection getDirectionFacing();
+	public BlockFacing getDirectionFacing();
 
 }

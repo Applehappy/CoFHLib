@@ -940,14 +940,13 @@ public final class ItemHelper {
 	/**
 	 * Determine if a player is holding a registered Fluid Container.
 	 */
+	@Deprecated
 	public static final boolean isPlayerHoldingFluidContainer(EntityPlayer player, EnumHand hand) {
-		
 		return FluidContainerRegistry.isContainer(player.getHeldItem(hand));
 	}
 
-	public static final boolean isPlayerHoldingFluidContainerItem(EntityPlayer player) {
-		
-		return FluidHelper.isPlayerHoldingFluidContainerItem(player);
+	public static final boolean isPlayerHoldingFluidContainerItem(EntityPlayer player, EnumHand hand) {
+		return FluidHelper.isPlayerHoldingFluidContainerItem(player, hand);
 	}
 
 	public static final boolean isPlayerHoldingEnergyContainerItem(EntityPlayer player) {
